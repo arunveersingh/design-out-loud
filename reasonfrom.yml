@@ -1,0 +1,19 @@
+# Opt in to publishing on reasonfrom.com (see github.com/arunveersingh/reasonfrom-kit).
+# Remove this file, or set publish: false, and nothing from this repo is published.
+publish: true
+courses:
+  - layout: curriculum-days
+    path: .
+    slug: faang-system-design-90-days
+    title: "FAANG System Design, 90 days"
+    tagline: "Attempt the problem, then read. Requirements before boxes. One sitting is a day."
+    curriculum: CURRICULUM.md
+    lessons: days
+    pages:
+      - { path: START.md, section: Start }
+      - { path: HOW-TO-STUDY.md, section: Start }
+      - { path: CHECKLIST.md, section: Start }
+      - { path: prompts, section: Problem bank }
+      - { path: stencils/README.md, section: Tools }
+      - { path: design-log, section: Tools }
+      - { path: appendices, section: Appendices }
