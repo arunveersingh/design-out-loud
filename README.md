@@ -1,6 +1,8 @@
-# FAANG System Design, 90 Days
+# Design Out Loud
 
-**[Read the course →](https://arunveersingh.github.io/faang-system-design-90-days/)**
+*System design in 90 sittings.*
+
+**[Read the course →](https://reasonfrom.com/courses/design-out-loud/)**
 
 Read it in the browser, like a book. You do not clone this repository and you do not fork it. Start at Day 1. One sitting, 30–40 minutes. Attempt before you read. Stop at 40.
 
@@ -16,7 +18,7 @@ There is no certificate and no cohort. The design log is the artifact. It stays 
 
 ## Who it is for
 
-Engineers with 10 or more years of experience, preparing for senior and staff interviews at Google, Meta, Amazon, Apple, Netflix, Microsoft, and peers. The altitude is someone who has already shipped, and now has to make the reasoning visible on a whiteboard.
+Engineers with 10 or more years of experience, preparing for senior and staff system design interviews, or for the design reviews those interviews imitate. The altitude is someone who has already shipped, and now has to make the reasoning visible on a whiteboard.
 
 Not a new-grad course. Not an AI or ML course. The 90 days are distributed systems, scale, and reliability only.
 
@@ -24,7 +26,7 @@ Not a new-grad course. Not an AI or ML course. The 90 days are distributed syste
 
 | Days | Status |
 |---|---|
-| 1–7 | Written. Phase 1, the pastebin method. [Start Day 1 in the book](https://arunveersingh.github.io/faang-system-design-90-days/#/days/01-what-the-interview-is-grading.md). |
+| 1–7 | Written. Phase 1, the pastebin method. [Start Day 1 in the book](https://reasonfrom.com/courses/design-out-loud/day-01/). |
 | 8–28 | Written. Phase 2, one box at a time on that pastebin. Day 28 is a different mock. |
 | 29–49 | Written. Phase 3, guarantees, keys, and the failure you accept. Day 49 is a different mock. |
 | 50–77 | Written. Phase 4, product-shaped systems. Days 63 and 77 are different mocks.

@@ -4,9 +4,9 @@ publish: true
 courses:
   - layout: curriculum-days
     path: .
-    slug: faang-system-design-90-days
-    title: "FAANG System Design, 90 days"
-    tagline: "Attempt the problem, then read. Requirements before boxes. One sitting is a day."
+    slug: design-out-loud
+    title: "Design Out Loud"
+    tagline: "System design in 90 sittings. Attempt the problem, then read. Requirements before boxes."
     curriculum: CURRICULUM.md
     lessons: days
     pages:
