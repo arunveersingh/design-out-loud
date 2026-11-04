@@ -1,0 +1,19 @@
+# Opt in to publishing on reasonfrom.com (see github.com/arunveersingh/reasonfrom-kit).
+# Remove this file, or set publish: false, and nothing from this repo is published.
+publish: true
+courses:
+  - layout: curriculum-days
+    path: .
+    slug: design-out-loud
+    title: "Design Out Loud"
+    tagline: "System design in 90 sittings. Attempt the problem, then read. Requirements before boxes."
+    curriculum: CURRICULUM.md
+    lessons: days
+    pages:
+      - { path: START.md, section: Start }
+      - { path: HOW-TO-STUDY.md, section: Start }
+      - { path: CHECKLIST.md, section: Start }
+      - { path: prompts, section: Problem bank }
+      - { path: stencils/README.md, section: Tools }
+      - { path: design-log, section: Tools }
+      - { path: appendices, section: Appendices }
