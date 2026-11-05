@@ -63,6 +63,16 @@ Mover updates: 1e6 / 10 s = **100k**/s peak write — needs a hot geo store, not
 
 Queries 20k/s: in-memory/geo-replicated index shards by region.
 
+| Item | Math | Result |
+|---|---|---|
+| Mover writes | 1M active / 10 s average | **~100k writes/s** |
+| Mover memory | 1M × ~64 B (id, cell, coarse lat/lng, ts, status) | **~64 MB** per replica |
+| POI memory | 50M × ~200 B (id, cell, name ref, category, rank) | **~10 GB**, a few nodes |
+| Query fan-out | 1 km radius, ~0.6–1.2 km cells | **~4–9 cells** per query |
+| Cell reads | 20k queries/s × ~9 cells | **~180k cell reads/s** |
+
+**What the table tells you.** Size is small. Mover data fits in RAM on one box. The hard parts are the write rate, the cell reads per query, and a handful of downtown cells that take most of the traffic.
+
 ## API and data
 
 `GET /v1/nearby?lat=&lng=&r=&k=` with auth. Server may reduce precision of input for logging.
@@ -75,9 +85,43 @@ POI: id, cell_id, attrs. Mover: id, cell_id, updated_at, status.
 
 S2/geohash cells; shard by coarse cell. Query fans out to cells covering radius; merge by distance on quantized centers. Cap r and k.
 
+**Pick the cell size from the radius.** Aim for a cell edge about half to one radius, so a query covers roughly 4–9 cells. Too small and one query touches hundreds of cells. Too big and you scan thousands of far-away points, then throw them away.
+
+| Scheme | How it cuts the map | Good at | Watch out for |
+|---|---|---|---|
+| Geohash | Base32 string; each extra character shrinks the cell. 5 chars ≈ 4.9 × 4.9 km, 6 ≈ 1.2 × 0.6 km, 7 ≈ 153 × 153 m (at the equator) | Prefix range scans in any sorted store; Redis `GEOSEARCH` stores a 52-bit geohash as a sorted-set score | Cells get narrower toward the poles; neighbors across a boundary can share no prefix |
+| S2 | Projects the sphere onto a cube, orders cells along a Hilbert curve, levels 0–30, each level quarters a cell's area | Tight "cover this circle" cell sets with mixed levels | Library dependency; harder to eyeball |
+| Quadtree | Splits a square into four only where points are dense | Uneven density (Manhattan vs farmland) | Rebalancing as movers shift; harder to shard |
+| H3 hexagons | Hex grid; all six neighbors sit at the same distance | Even rings for "within k steps" and heat maps | Children don't nest exactly inside parents |
+
+**Quirk: the boundary miss.** Two cafés 20 m apart can sit on opposite sides of a geohash cell edge and share no prefix at all. Searching only the user's own cell misses the closer one. Always search the cell **plus its 8 neighbors** (or use S2's region cover), then filter by real distance.
+
+**Nearest K, not radius.** Start with a small ring of cells. If you have fewer than K hits, widen one ring and repeat. Stop at K or at the radius cap. Only rank on haversine distance (great-circle distance on a sphere) after you have candidates, since computing it for every point is the scan you built the index to avoid.
+
+**Degrees are not kilometers.** 1° of latitude is about 111 km everywhere. 1° of longitude is about 111 km × cos(latitude): ~111 km at the equator, ~97 km in Delhi, ~69 km in London. A "box ±0.01°" query is not square outside the tropics.
+
 ### Movers
 
 Update writes new cell; TTL soft-delete if stale (>2× update period). Clients see last known coarse position within staleness SLO (**15–60 s**).
+
+**Crossing a cell edge.** When a driver moves from cell A to cell B, and A and B live on different shards, the update is two writes: add to B, then remove from A. Between them, the driver shows in both. Readers dedupe by mover id and keep the newest `updated_at`. Do it in that order. Remove-first gives a gap where the driver vanishes, and an empty street is worse than a duplicate you can drop.
+
+**Skip pointless writes.** The phone sends every 5–30 s, but the server only needs to touch the index when the coarse cell changes or the TTL is close to running out. A parked driver refreshes the timestamp instead of rewriting the location. In dense traffic this cuts index writes well below the raw 100k/s.
+
+**Out-of-order updates.** Mobile networks retry and reorder. Store the client's sequence number per mover and drop any update older than the one you hold, or a late packet teleports the driver back two blocks.
+
+```mermaid
+sequenceDiagram
+  participant D as Driver app
+  participant G as Location gateway
+  participant B as Shard for new cell B
+  participant A as Shard for old cell A
+  D->>G: update(id, seq=42, lat, lng)
+  G->>G: drop if seq <= last seq; quantize
+  G->>B: add id (cell B, ts, TTL)
+  G->>A: remove id from cell A
+  Note over B,A: reader sees id in both briefly, keeps newest ts
+```
 
 ### Privacy controls
 
@@ -86,9 +130,20 @@ Update writes new cell; TTL soft-delete if stale (>2× update period). Clients s
 - Rate limit nearby queries to reduce stalking.
 - Opt-in visibility for people nearby.
 
+**Quirk: exact distance is a location leak.** If the API says "Priya is 412 m away," an attacker can fake their own position three times, draw three circles, and find where they cross. Researchers have located dating-app users this way. Rounding the output alone is not enough, and neither is adding fresh random noise to each answer, because the attacker asks 100 times and averages the noise away.
+
+What holds up:
+
+1. **Snap the target, not the answer.** Store the other person at a fixed grid cell center (~100–200 m) and measure from there. Repeated queries always get the same answer, so averaging gains nothing.
+2. **Return a band.** "Under 1 km," "1–2 km." Never meters for strangers.
+3. **Distrust the asker's location.** Rate-limit how fast an account's claimed position may jump. A user "moving" 5 km between queries 3 seconds apart is spoofing.
+4. **Cap queries per target.** Many distance checks on the same person from one account is an alert, not a feature.
+
 ### Dense downtown
 
 Hot cells: cache top POIs; movers in separate hotter store. Shed huge r.
+
+**Split the hot cell, don't just add CPU.** If one downtown cell holds 30,000 drivers at a stadium exit, split it into its four children for indexing (S2 and quadtrees make this natural) and spread them across shards. Readers then cover the query circle with the finer cells. Static POIs in the same area are read-only, so add read replicas and cache the top results per cell for 30–60 s.
 
 
 ### Staff arithmetic: mover writes and downtown reads
@@ -177,6 +232,11 @@ Quantize movers for matching (~100–200 m). Responses return distance bands, ne
 | Follow-up | You answer with |
 |---|---|
 | "How precise?" | Quantization for others; self precise only with short TTL / on device. |
+| "Geohash edge case?" | Two close points can share no prefix; search cell + 8 neighbors, then filter by real distance. |
+| "Nearest K, sparse area?" | Expanding rings of cells until K hits or the radius cap. |
+| "Driver crosses shards?" | Add to new cell, then remove from old; readers dedupe by id, newest timestamp wins. |
+| "Can't someone triangulate?" | Snap targets to a fixed grid, return bands, rate-limit position jumps and per-target queries. |
+| "Downtown hot spot?" | Split the hot cell into children across shards; cache static POIs 30–60 s. |
 
 ## Design log
 
