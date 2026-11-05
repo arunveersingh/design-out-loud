@@ -22,4 +22,4 @@ That's Day 60 of my free 90-day system design book. Link's in the description. T
 ---
 
 On-screen text: `exact distance = location leak` · `random noise averages out` · `snap to a block, show a range`
-Description link: https://reasonfrom.com/faang-system-design-90-days/#/days/60-nearby
+Description link: https://reasonfrom.com/courses/design-out-loud/day-60/

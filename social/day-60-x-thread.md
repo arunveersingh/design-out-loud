@@ -41,4 +41,4 @@ In the interview, say this before anyone asks: privacy is a requirement, not an 
 Day 60 of my free 90-day system design book has the full problem, the map math, and what happens when one downtown block gets 30,000 drivers at once.
 
 Try the problem before you read the answer:
-https://reasonfrom.com/faang-system-design-90-days/#/days/60-nearby
+https://reasonfrom.com/courses/design-out-loud/day-60/
